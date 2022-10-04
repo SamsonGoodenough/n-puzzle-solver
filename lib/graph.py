@@ -36,13 +36,13 @@ class Graph:
     self.root = Node(None, state, self)
     self.solvable = self.getDisorder() % 2 == 0
   
-  # depth-first search explore WILL CHANGE TO A* USING HEURISTICS
   def discover(self):
     assert self.solvable
     node = self.root
     while(node.state != self.goalState):
       node.explore()
       node = heapq.heappop(self.frontier)
+    return node
     
   """
   ----------------------------------------------------------
@@ -55,18 +55,19 @@ class Graph:
       -1    : The state is the solved state.
   ----------------------------------------------------------
   """
+  #TODO: make sure graph is a valid graph (no duplicates)
   def getDisorder(self):
     disorder = 0
     passFlag = False
-    # loop over all the tiles
+    # loop over all the tiles backwards while the tile matches with the goal state
     for i in range(len(self.goalState.id)-1, 0, -1):
       if not passFlag and self.goalState.id[i] == self.root.state.id[i]:
         continue
       else:
         passFlag = True
         
-      # loop over all the tiles before the current tile
-      for j in range(i-1, 0, -1):
+      # loop over remaining tiles and calculate disorder
+      for j in range(i-1, -1, -1):
         if self.root.state.id[i] < self.root.state.id[j]:
           if self.root.state.id[i] == 0 or self.root.state.id[j] == 0:
             continue

@@ -1,9 +1,13 @@
+import heapq
 from lib.graph import Graph
+from lib.node import Node
 
-graph = Graph('142305678')
+graph = Graph([1,4,2,3,0,5,6,7,8])
 
-print('heyyyyy')
-graph.goalState.printState()
 graph.discover()
+
+print(graph.goalState)
+
+
 
 

@@ -1,116 +1,136 @@
-from .state import State
+import heapq
 
+from .state import State
+#TODO: Check rotations of states when visiting a node
 class Node:
-  def __init__(self, state, explored, width, goalState):
+  """
+  ----------------------------------------------------------
+  Node Class
+  ----------------------------------------------------------
+  Parameters:
+      state     : The state of the node. (State)
+      explored  : Array of explored nodes. (Array of Nodes)
+      width     : width of the puzzle. 3 or 8-puzzle, 4 for 15-puzzle (int)
+      goalState : Goal state. (state)
+
+  Variables:
+      next      : Array of the four possible next nodes. Will be None if the move is not possible, initially all directions are None. (Array of nodes)
+      cost      : Cost of the node. This will be num of nodes traveled + heuristic value of state (int)
+      parent    : Parent node. (Node)
+  
+  Methods:
+      explore   : Explores the node and returns the explored array. (Array)
+        moveUp    : Moves the node up and returns the new node. (Node)
+        moveRight : Moves the node right and returns the new node. (Node)
+        moveDown  : Moves the node down and returns the new node. (Node)
+        moveLeft  : Moves the node left and returns the new node. (Node)
+      checkIfGoalState : Checks if the node is the goal state. (bool)
+      UpdateExplored   : Updates the explored array. (void)
+      strReplace       : Helper function that replaces a character in a string. (String)
+  ----------------------------------------------------------
+  """
+  def __init__(self, parent, state, graph, pathCost = 0):
     self.state = state
-    self.next = [None, None, None, None]
-    self.width = width
-    self.goalState = goalState
+    self.pathCost = pathCost
+    if(graph.heuristic == "tiles"):
+      self.heuristicValue = self.state.calculateMisplacedTiles()
+    self.cost = self.pathCost + self.heuristicValue
+    self.parent = parent
+    self.graph = graph
     
     # add self to explored
-    self.explored = explored
-    self.explored[self.state.id] = True
-    
-    #sTODO REMOVE THIS
-    self.state.printState()
+    self.graph.explored[str(self.state)] = True
   
+  def __lt__(self, other):
+    return self.cost < other.cost
+  def __le__(self, other):
+    return self.cost <= other.cost
+  def __eq__(self, other):
+    return self.cost == other.cost
+  def __str__(self):
+    return "[ID: ", self.state.id, "Cost: ", self.cost,"]"
+  
+  #TODO: Using heuristic function, find the next best node to explore.
+  #     Add global array of frontier nodes, and add all nodes still left to traverse to the array.
   def explore(self):
-    assert self.state != None
-    up = self.moveUp()
-    self.updateExplored(up)
-    
-    right = self.moveRight()
-    self.updateExplored(right)
-    
-    down = self.moveDown()
-    self.updateExplored(down)
-    
-    left = self.moveLeft()
-    self.updateExplored(left)
-    
-    self.next = [up, right, down, left]
-    
-    return self.explored
-    
-  def moveUp(self):
-    blank = self.state.id.find("0")
-    newId = self.state.id
-    if blank < self.width:
+    #add all possible next nodes to the frontier array
+    node = self.findUp()
+    if (node != None and self.graph.explored[node.state] == False):
+      heapq.heappush(self.graph.frontier, node)
+    node = self.findRight()
+    if (node != None and self.graph.explored[node.state] == False):
+      heapq.heappush(self.graph.frontier, node)
+    node = self.findDown()
+    if (node != None and self.graph.explored[node.state] == False):
+      heapq.heappush(self.graph.frontier, node)
+    node = self.findLeft()
+    if (node != None and self.graph.explored[node.state] == False):
+      heapq.heappush(self.graph.frontier, node)
+    return
+  
+  def findUp(self):
+    blank = self.state.id.index(0)
+    newState = self.state
+    if blank < self.graph.width:
       return None # can't move up
     else:
-      newId = self.strReplace(newId, blank, self.state.id[blank-self.width])
-      newId[blank-self.width] = "0"
-      
-    if (self.explored[newId] == True):
+      newState[blank] = self.state.id[blank-self.graph.width]
+      newState[blank-self.graph.width] = 0
+    if (self.graph.explored[str(newState)] == True):
       return None
     
-    s = State(newId)
-    n = Node(s, self.explored, self.width, self.goalState)
-    n.explore()
+    s = State(newState, self.graph)
+    n = Node(self, s, self.graph, self.pathCost+1)
     
     return n
   
-  def moveRight(self):
-    blank = self.state.id.find("0")
+  def findRight(self):
+    blank = self.state.id.index(0)
     newId = self.state.id
-    if (blank+1) % self.width == 0:
+    if (blank+1) % self.graph.width == 0:
       return None # can't move right
     else:
       newId[blank] = self.state.id[blank+1]
-      newId[blank+1] = "0"
+      newId[blank+1] = 0
       
-    if (self.explored[newId] == True):
+    if (self.graph.explored[str(newId)] == True):
       return None
     
-    s = State(newId)
-    n = Node(s, self.explored, self.width, self.goalState)
-    n.explore()
+    s = State(newId, self.graph)
+    n = Node(self, s, self.graph, self.pathCost+1)
     
     return n
   
-  def moveDown(self):
-    blank = self.state.id.find("0")
+  def findDown(self):
+    blank = self.state.id.index(0)
     newId = self.state.id
-    if blank > self.width*(self.width-1):
+    if blank > self.graph.width*(self.graph.width-1):
       return None # can't move up
     else:
-      newId[blank] = self.state.id[blank+self.width]
-      newId[blank+self.width] = "0"
+      newId[blank] = self.state.id[blank+self.graph.width]
+      newId[blank+self.graph.width] = 0
       
-    if (self.explored[newId] == True):
+    if (self.graph.explored[str(newId)] == True):
       return None
     
-    s = State(newId)
-    n = Node(s, self.explored, self.width, self.goalState)
-    n.explore()
+    s = State(newId, self.graph)
+    n = Node(self, s, self.graph, self.pathCost+1)
     
     return n
   
-  def moveLeft(self):
-    blank = self.state.id.find("0")
+  def findLeft(self):
+    blank = self.state.id.index(0)
     newId = self.state.id
-    if (blank) % self.width == 0:
+    if (blank) % self.graph.width == 0:
       return None # can't move left
     else:
       newId[blank] = self.state.id[blank-1]
-      newId[blank-1] = "0"
+      newId[blank-1] = 0
       
-    if (self.explored[newId] == True):
+    if (self.graph.explored[str(newId)] == True):
       return None
     
-    s = State(newId)
-    n = Node(s, self.explored, self.width, self.goalState)
-    n.explore()
+    s = State(newId, self.graph)
+    n = Node(self, s, self.graph, self.pathCost+1)
     
     return n
-  
-  def updateExplored(self, node):
-    if node != None:
-      self.explored = node.explored
-    return
-  
-  def checkIfGoalState(self):
-    return self.state.id == self.goalState.id
-  
-  def strReplace(str, index, char):
-    return str[0:index] + char + str[index+1:]

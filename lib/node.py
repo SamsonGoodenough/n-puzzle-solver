@@ -3,39 +3,46 @@ import heapq
 
 from .state import State
 #TODO: Check rotations of states when visiting a node
-#TODO: Remake node docstring
 class Node:
   """
   ----------------------------------------------------------
   Node Class
   ----------------------------------------------------------
   Parameters:
-      state     : The state of the node. (State)
-      explored  : Array of explored nodes. (Array of Nodes)
-      width     : width of the puzzle. 3 or 8-puzzle, 4 for 15-puzzle (int)
-      goalState : Goal state. (state)
+      parent          : The parent node of the current node. (Node)
+      state           : The state of the current node. (State)
+      graph           : The graph that the node is in. (Graph)
+      pathCost        : The cost of the path from the start node to the current node. By default this is 0 aka root node (int)
 
   Variables:
-      next      : Array of the four possible next nodes. Will be None if the move is not possible, initially all directions are None. (Array of nodes)
-      cost      : Cost of the node. This will be num of nodes traveled + heuristic value of state (int)
-      parent    : Parent node. (Node)
+      state           : The state of the node. (State)
+      pathCost        : The cost of the path to the node. (int)
+      heuristicValue  : The heuristic value of the node. (int)
+      cost            : The cost of the node. cost = pathCost + heuristicValue (int)
+      parent          : The parent node of the current node. (Node)
+      graph           : The graph that the node is in. (Graph)
   
   Methods:
-      explore   : Explores the node and returns the explored array. (Array)
-        moveUp    : Moves the node up and returns the new node. (Node)
-        moveRight : Moves the node right and returns the new node. (Node)
-        moveDown  : Moves the node down and returns the new node. (Node)
-        moveLeft  : Moves the node left and returns the new node. (Node)
-      checkIfGoalState : Checks if the node is the goal state. (bool)
-      UpdateExplored   : Updates the explored array. (void)
-      strReplace       : Helper function that replaces a character in a string. (String)
+      ExpandFrontier  : Expands the frontier adding the nodes above, right, below, and left of the current node. (Array)
+        findUp          : finds the node above the current node and returns the new node. (Node)
+        findRight       : finds the node to the right of the current node and returns the new node. (Node)
+        findDown        : finds the node below the current node and returns the new node. (Node)
+        findLeft        : finds the node to the left of the current node and returns the new node. (Node)
+      printPath       : Prints the path from the root node to the current node by going back through parent nodes. (Void)
   ----------------------------------------------------------
   """
   def __init__(self, parent, state, graph, pathCost = 0):
     self.state = state
     self.pathCost = pathCost
+    
+    # TODO: Based on the heuristic function, calculate the heuristic value of the node (manhattan and h3 are not implemented)
     if(graph.heuristic == "tiles"):
       self.heuristicValue = self.state.calculateMisplacedTiles()
+    elif(graph.heuristic == "manhattan"):
+      print("manhattan")
+    elif(graph.heuristic == "h3"):
+      print("h3")
+      
     self.cost = self.pathCost + self.heuristicValue
     self.parent = parent
     self.graph = graph
@@ -52,8 +59,13 @@ class Node:
   def __str__(self):
     return "ID: "+ str(self.state.id)+ " Path-Cost: "+ str(self.pathCost) + " Heuristic-Value: " + str(self.heuristicValue) + " Cost: " + str(self.cost)
   
-  def explore(self):
-    #add all possible next nodes to the frontier array
+  def expandFrontier(self):
+    """
+    ----------------------------------------------------------
+    Adds the nodes that are reachable from the current node to the frontier heap.
+    Use: node.expandFrontier()
+    ----------------------------------------------------------
+    """
     node = self.findUp()
     if (node != None):
       heapq.heappush(self.graph.frontier, node)
@@ -76,7 +88,7 @@ class Node:
     ----------------------------------------------------------
     Returns:
       n - Node that is above the current node. (Node)
-      None - If the move is not possible or we have visited the above node. (None)
+      None - If there is no node above the blank or the above node is in the explored dictionary. (None)
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
@@ -84,7 +96,7 @@ class Node:
     if blank < self.graph.width:
       return None # can't move up
     else:
-      newState.id[blank] = self.state.id[blank-self.graph.width]
+      newState.id[blank] = deepcopy(self.state.id[blank-self.graph.width]) #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-self.graph.width] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -101,7 +113,7 @@ class Node:
     ----------------------------------------------------------
     Returns:
       n - Node that is right of the current node. (Node)
-      None - If the move is not possible or we have visited the right node. (None)
+      None - If there is no node to the right of blank or the right node is in the explored dictionary. (None)
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
@@ -109,7 +121,7 @@ class Node:
     if (blank+1) % self.graph.width == 0:
       return None # can't move right
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank+1])
+      newState.id[blank] = deepcopy(self.state.id[blank+1]) #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+1] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -127,7 +139,7 @@ class Node:
     ----------------------------------------------------------
     Returns:
       n - Node that is below the current node. (Node)
-      None - If the move is not possible or we have visited the below node. (None)
+      None - If there is no node below blank or the below node is in the explored dictionary. (None)
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
@@ -135,7 +147,7 @@ class Node:
     if blank >= self.graph.width*(self.graph.width-1):
       return None # can't move up
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank+self.graph.width])
+      newState.id[blank] = deepcopy(self.state.id[blank+self.graph.width]) #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+self.graph.width] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -152,7 +164,7 @@ class Node:
     ----------------------------------------------------------
     Returns:
       n - Node that is left of the current node. (Node)
-      None - If the move is not possible or we have visited the left node. (None)
+      None - If there is no node to the left of blank or the left node is in the explored dictionary. (None)
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
@@ -160,7 +172,7 @@ class Node:
     if (blank) % self.graph.width == 0:
       return None # can't move left
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank-1])
+      newState.id[blank] = deepcopy(self.state.id[blank-1]) #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-1] = 0
     try:
       if (self.graph.explored[str(newState)] == True):

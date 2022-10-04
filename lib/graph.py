@@ -10,14 +10,20 @@ class Graph:
   Use: Holds the root state and goal state of the graph.
   ----------------------------------------------------------
   Parameters:
-    id - ID of the root state. (String/Array idk we'll see)
+    id                  : ID of the root state. (Array)
+    heuristic           : Heuristic to use when calculating the cost of a node. Default is misplaced tiles (String)
   Variables:
-    goalState - Goal state of the graph. By default this is in increasing order: 0,1,2,3,4,5,6,7,8... (State)
-    root      - Root node of the graph. (Node)
-    solvable  - Whether or not the graph is solvable. (Boolean)
+    goalState           : Goal state of the graph. (State)
+    heuristic           : Heuristic to use when calculating the cost of a node. Default is misplaced tiles (String)
+    explored            : Dictionary of explored states. (Dictionary)
+    frontier            : Heap of nodes that we have found but have yet to explore. (Heap)
+    width               : Width of the graph. (int)
+    root                : Root node of the graph. (Node)
+    solvable            : Whether or not the graph is solvable. (Boolean)
   Methods:
-    discover  - Discovers a path to the goal state. (Void)
-    getDisorder - Returns the disorder parameter of the root state. (int)
+    findGoalState       : Discovers a path to the goal state using A* search. (Node)
+    getDisorder         : Returns the disorder parameter of the root state. (int)
+    getDefaultGoalState : Returns the default goal state for the given id. [0,1,2,3,4,5,6,7,8...] (State)
   ----------------------------------------------------------
   """
 
@@ -36,30 +42,45 @@ class Graph:
     self.root = Node(None, state, self)
     self.solvable = self.getDisorder() % 2 == 0
   
-  def discover(self):
-    assert self.solvable
-    node = self.root
-    while(node.state != self.goalState):
-      node.explore()
-      node = heapq.heappop(self.frontier)
-    return node
+  def findGoalState(self):
+    """
+    ----------------------------------------------------------
+    Discovers a path to the goal state using A* search.
+    Use: graph.findGoalState()
+    ----------------------------------------------------------
+    Asserts:
+      The graph is solvable.
+    Returns:
+      node : Node that holds the goal state. (Node)
+      -1   : The graph is not solvable.
+    ----------------------------------------------------------
+    """
+    try:
+      assert self.solvable
+      node = self.root
+      while(node.state != self.goalState): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
+        node.expandFrontier()
+        node = heapq.heappop(self.frontier)
+      return node
+    except AssertionError:
+      return -1
     
-  """
-  ----------------------------------------------------------
-  Get the disorder of the state.
-  ----------------------------------------------------------
-  Returns:
-    disorder: The disorder of the state.
-      even  : The state is solvable.
-      odd   : The state is not solvable.
-      -1    : The state is the solved state.
-  ----------------------------------------------------------
-  """
-  #TODO: make sure graph is a valid graph (no duplicates)
+  #TODO: make sure graph is a valid graph (no duplicates) prob do this in getDisorder since we are already looping through the graph
   def getDisorder(self):
+    """
+    ----------------------------------------------------------
+    Get the disorder of the state.
+    ----------------------------------------------------------
+    Returns:
+      disorder: The disorder of the state.
+        even  : The state is solvable.
+        odd   : The state is not solvable.
+        -1    : The state is the solved state.
+    ----------------------------------------------------------
+    """
     disorder = 0
     passFlag = False
-    # loop over all the tiles backwards while the tile matches with the goal state
+    # pass over all the tile that matches with the goal state
     for i in range(len(self.goalState.id)-1, 0, -1):
       if not passFlag and self.goalState.id[i] == self.root.state.id[i]:
         continue
@@ -81,7 +102,15 @@ class Graph:
       return disorder
 
   def getDefaultGoalState(self, id):
+    """
+    ----------------------------------------------------------
+    Get the default goal state for the given id.
+    Use: self.goalState = self.getDefaultGoalState(id)
+    ----------------------------------------------------------
+    """
     state = []
     for i in range(0, len(id)):
       state.append(i)
     return State(state, self)
+  
+  

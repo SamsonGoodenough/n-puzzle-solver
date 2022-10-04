@@ -6,8 +6,11 @@ class State:
   ----------------------------------------------------------
   Parameters:
     id - ID of the state. (Array)
+    graph - Graph that the state is a part of. (Graph)
   Methods:
     printState - Prints the state to the console.
+    calculateMisplacedTiles - Calculates the number of misplaced tiles in the state.
+    calculateManhattanDistance - Calculates the manhattan distance of the state.
   ----------------------------------------------------------
   """
   def __init__(self, id, graph):
@@ -23,9 +26,13 @@ class State:
   def calculateMisplacedTiles(self):
     count = 0
     for i in range(len(self.id)):
-      if self.id[i] != self.graph.goalState.id[i]:
+      if self.id[i] != 0 and self.id[i] != self.graph.goalState.id[i]:
         count += 1 
     return count
+  
+  def calculateManhattanDistance(self):
+    #TODO: calculate manhattan distance
+    return
   
   def printState(self):
     for i in range(self.graph.width):

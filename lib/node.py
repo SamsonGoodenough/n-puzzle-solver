@@ -10,6 +10,7 @@ class Node:
   ----------------------------------------------------------
   Parameters:
       parent          : The parent node of the current node. (Node)
+      children        : The children nodes of the current node. (List of Nodes)
       state           : The state of the current node. (State)
       graph           : The graph that the node is in. (Graph)
       pathCost        : The cost of the path from the start node to the current node. By default this is 0 aka root node (int)
@@ -46,6 +47,7 @@ class Node:
     self.cost = self.pathCost + self.heuristicValue
     self.parent = parent
     self.graph = graph
+    self.children = []
     
     # add self to explored
     self.graph.explored[str(self.state)] = True
@@ -69,15 +71,19 @@ class Node:
     node = self.findUp()
     if (node != None):
       heapq.heappush(self.graph.frontier, node)
+      self.children.append(node)
     node = self.findRight()
     if (node != None):
       heapq.heappush(self.graph.frontier, node)
+      self.children.append(node)
     node = self.findDown()
     if (node != None):
       heapq.heappush(self.graph.frontier, node)
+      self.children.append(node)
     node = self.findLeft()
     if (node != None):
       heapq.heappush(self.graph.frontier, node)
+      self.children.append(node)
     return
   
   def findUp(self):

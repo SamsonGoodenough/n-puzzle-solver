@@ -59,6 +59,7 @@ class Graph:
       assert self.solvable
       node = self.root
       while(node.state != self.goalState): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
+        print(node)
         node.expandFrontier()
         node = heapq.heappop(self.frontier)
       return node

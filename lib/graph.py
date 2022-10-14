@@ -2,6 +2,7 @@ import heapq
 import math
 from .state import State
 from .node import Node
+import time
 
 class Graph:
   """
@@ -26,7 +27,6 @@ class Graph:
     getDefaultGoalState : Returns the default goal state for the given id. [0,1,2,3,4,5,6,7,8...] (State)
   ----------------------------------------------------------
   """
-
   def __init__(self, id, heuristic = "tiles"):
     self.goalState = self.getDefaultGoalState(id)
     self.heuristic = heuristic
@@ -57,15 +57,30 @@ class Graph:
     """
     try:
       assert self.solvable
+      count = 0
       node = self.root
+      start = time.time()
       while(node.state != self.goalState): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
         node.expandFrontier()
         node = heapq.heappop(self.frontier)
+        
+        #TODO: remove this later (for testing)
+        if(count % 100000 == 0):
+          print("Time elapsed: " + str(round(time.time() - start, 2)) + "s")
+          print("Nodes Traversed: " + str(count))
+          print("Current Node: "+ str(node))
+          print()
+          
+        count += 1
+      print("---------------------------------------------------------------")
+      print("TOTAL NODES TRAVERSED: " + str(count))
       return node
     except AssertionError:
       return -1
     
   #TODO: make sure graph is a valid graph (no duplicates) prob do this in getDisorder since we are already looping through the graph
+  #TODO: can prob put this in the state class
+  #TODO: something is up with this function idk what it is but it is not working correctly
   def getDisorder(self):
     """
     ----------------------------------------------------------
@@ -112,5 +127,3 @@ class Graph:
     for i in range(0, len(id)):
       state.append(i)
     return State(state, self)
-  
-  

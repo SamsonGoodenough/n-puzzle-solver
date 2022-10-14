@@ -35,13 +35,12 @@ class Node:
     self.state = state
     self.pathCost = pathCost
     
-    # TODO: Based on the heuristic function, calculate the heuristic value of the node (manhattan and h3 are not implemented)
     if(graph.heuristic == "tiles"):
       self.heuristicValue = self.state.calculateMisplacedTiles()
     elif(graph.heuristic == "manhattan"):
-      print("manhattan")
-    elif(graph.heuristic == "h3"):
-      print("h3")
+      self.heuristicValue = self.state.calculateManhattanDistance()
+    elif(graph.heuristic == "disorder"):
+      self.heuristicValue = self.state.calculateDisorder()
       
     self.cost = self.pathCost + self.heuristicValue
     self.parent = parent
@@ -50,6 +49,7 @@ class Node:
     # add self to explored
     self.graph.explored[str(self.state)] = True
   
+  # Magic Methods
   def __lt__(self, other):
     return self.cost < other.cost
   def __le__(self, other):
@@ -68,15 +68,19 @@ class Node:
     """
     node = self.findUp()
     if (node != None):
+      # self.graph.frontier.add(node)
       heapq.heappush(self.graph.frontier, node)
     node = self.findRight()
     if (node != None):
+      # self.graph.frontier.add(node)
       heapq.heappush(self.graph.frontier, node)
     node = self.findDown()
     if (node != None):
+      # self.graph.frontier.add(node)
       heapq.heappush(self.graph.frontier, node)
     node = self.findLeft()
     if (node != None):
+      # self.graph.frontier.add(node)
       heapq.heappush(self.graph.frontier, node)
     return
   
@@ -92,11 +96,12 @@ class Node:
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
-    newState = State(deepcopy(self.state.id), self.graph) # this is stupid
+
+    newState = State(list(self.state.id), self.graph) # this is stupid
     if blank < self.graph.width:
       return None # can't move up
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank-self.graph.width]) #idk if I need this deepcopy but just in case I'm doing it anyway
+      newState.id[blank] = self.state.id[blank-self.graph.width] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-self.graph.width] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -117,11 +122,11 @@ class Node:
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
-    newState = State(deepcopy(self.state.id), self.graph) # this is stupid
+    newState = State(list(self.state.id), self.graph) # this is stupid
     if (blank+1) % self.graph.width == 0:
       return None # can't move right
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank+1]) #idk if I need this deepcopy but just in case I'm doing it anyway
+      newState.id[blank] = self.state.id[blank+1] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+1] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -143,11 +148,11 @@ class Node:
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
-    newState = State(deepcopy(self.state.id), self.graph) # this is stupid
+    newState = State(list(self.state.id), self.graph) # this is stupid
     if blank >= self.graph.width*(self.graph.width-1):
       return None # can't move up
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank+self.graph.width]) #idk if I need this deepcopy but just in case I'm doing it anyway
+      newState.id[blank] = self.state.id[blank+self.graph.width] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+self.graph.width] = 0
     try:
       if (self.graph.explored[str(newState)] == True):
@@ -168,11 +173,11 @@ class Node:
     ----------------------------------------------------------
     """
     blank = self.state.id.index(0)
-    newState = State(deepcopy(self.state.id), self.graph) # this is stupid
+    newState = State(list(self.state.id), self.graph) # this is stupid
     if (blank) % self.graph.width == 0:
       return None # can't move left
     else:
-      newState.id[blank] = deepcopy(self.state.id[blank-1]) #idk if I need this deepcopy but just in case I'm doing it anyway
+      newState.id[blank] = self.state.id[blank-1] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-1] = 0
     try:
       if (self.graph.explored[str(newState)] == True):

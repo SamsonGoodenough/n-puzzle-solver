@@ -1,3 +1,4 @@
+import time
 class State:
   """
   ----------------------------------------------------------
@@ -72,7 +73,8 @@ class State:
     x = index % self.graph.width
     y = index // self.graph.width
     return x, y
-  
+
+  #TODO: make sure state is a valid state (no duplicates) prob do this in calculateDisorder since we are already looping through the graph
   def calculateDisorder(self):
     """
     ----------------------------------------------------------
@@ -97,12 +99,17 @@ class State:
       # loop over remaining tiles and calculate disorder
       for j in range(i-1, -1, -1):
         if self.id[i] < self.id[j]:
-          # if self.id[i] == 0 or self.id[j] == 0:
-          #   continue
-          # else:
-          disorder += 1
-    
-    # print("Disorder: " + str(disorder))
+          if self.id[i] == 0 or self.id[j] == 0:
+            continue
+          else:
+            disorder += 1
+
+    # Weird stupid idoit case where the disorder is odd but the state is solvable
+    if(self.graph.width % 2 == 0): # even width 
+      blankTileRow = self.id.index(0) // self.graph.width # get the row of the blank tile
+      if(blankTileRow % 2 != 0): # if even row
+        disorder += 1 # add 1 to disorder
+
     if not passFlag:
       return -1 # in solved state
     else:

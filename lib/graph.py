@@ -23,7 +23,6 @@ class Graph:
     solvable            : Whether or not the graph is solvable. (Boolean)
   Methods:
     findGoalState       : Discovers a path to the goal state using A* search. (Node)
-    getDisorder         : Returns the disorder parameter of the root state. (int)
     getDefaultGoalState : Returns the default goal state for the given id. [0,1,2,3,4,5,6,7,8...] (State)
   ----------------------------------------------------------
   """
@@ -32,6 +31,7 @@ class Graph:
     self.heuristic = heuristic
     self.explored = {}
     self.frontier = []
+    self.expanded = 0
     heapq.heapify(self.frontier)
     
     width = math.sqrt(len(id))
@@ -40,7 +40,7 @@ class Graph:
     self.width = int(width)
     state = State(id, self)
     self.root = Node(None, state, self)
-    self.solvable = self.getDisorder() % 2 == 0
+    self.solvable = self.root.state.calculateDisorder() % 2 == 0
   
   def findGoalState(self):
     """
@@ -57,64 +57,30 @@ class Graph:
     """
     try:
       assert self.solvable
-      count = 0
       node = self.root
       start = time.time()
-      while(node.state != self.goalState): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
+      while(node.heuristicValue != 0): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
         node.expandFrontier()
-        node = heapq.heappop(self.frontier)
+        node = heapq.heappop(self.frontier)[0]
+        self.explored[str(node.state)] = node
+
+        # find if the node exists in the frontier
+        # if it does, check if the new node is better
+        # if it is, replace the old node with the new node
         
         #TODO: remove this later (for testing)
-        if(count % 100000 == 0):
+        if(self.expanded % 100000 == 0):
           print("Time elapsed: " + str(round(time.time() - start, 2)) + "s")
-          print("Nodes Traversed: " + str(count))
+          print("Nodes Expanded: " + str(self.expanded))
           print("Current Node: "+ str(node))
           print()
-          
-        count += 1
+      print("TOTAL NODES EXPANDED: " + str(self.expanded))
+      print("TOTAL EXPLORED NODES: " + str(len(self.explored)))
       print("---------------------------------------------------------------")
-      print("TOTAL NODES TRAVERSED: " + str(count))
+
       return node
     except AssertionError:
       return -1
-    
-  #TODO: make sure graph is a valid graph (no duplicates) prob do this in getDisorder since we are already looping through the graph
-  #TODO: can prob put this in the state class
-  #TODO: something is up with this function idk what it is but it is not working correctly
-  def getDisorder(self):
-    """
-    ----------------------------------------------------------
-    Get the disorder of the state.
-    ----------------------------------------------------------
-    Returns:
-      disorder: The disorder of the state.
-        even  : The state is solvable.
-        odd   : The state is not solvable.
-        -1    : The state is the solved state.
-    ----------------------------------------------------------
-    """
-    disorder = 0
-    passFlag = False
-    # pass over all the tile that matches with the goal state
-    for i in range(len(self.goalState.id)-1, 0, -1):
-      if not passFlag and self.goalState.id[i] == self.root.state.id[i]:
-        continue
-      else:
-        passFlag = True
-        
-      # loop over remaining tiles and calculate disorder
-      for j in range(i-1, -1, -1):
-        if self.root.state.id[i] < self.root.state.id[j]:
-          if self.root.state.id[i] == 0 or self.root.state.id[j] == 0:
-            continue
-          else:
-            disorder += 1
-    
-    print("Disorder: " + str(disorder))
-    if not passFlag:
-      return -1 # in solved state
-    else:
-      return disorder
 
   def getDefaultGoalState(self, id):
     """

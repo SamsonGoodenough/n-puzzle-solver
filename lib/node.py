@@ -1,4 +1,3 @@
-from copy import deepcopy
 import heapq
 
 from .state import State
@@ -45,9 +44,6 @@ class Node:
     self.cost = self.pathCost + self.heuristicValue
     self.parent = parent
     self.graph = graph
-    
-    # add self to explored
-    self.graph.explored[str(self.state)] = True
   
   # Magic Methods
   def __lt__(self, other):
@@ -68,20 +64,23 @@ class Node:
     """
     node = self.findUp()
     if (node != None):
-      # self.graph.frontier.add(node)
-      heapq.heappush(self.graph.frontier, node)
+      heapq.heappush(self.graph.frontier, [node, -self.graph.expanded])
+      self.graph.expanded += 1
+
     node = self.findRight()
     if (node != None):
-      # self.graph.frontier.add(node)
-      heapq.heappush(self.graph.frontier, node)
+      heapq.heappush(self.graph.frontier, [node, -self.graph.expanded])
+      self.graph.expanded += 1
+
     node = self.findDown()
     if (node != None):
-      # self.graph.frontier.add(node)
-      heapq.heappush(self.graph.frontier, node)
+      heapq.heappush(self.graph.frontier, [node, -self.graph.expanded])
+      self.graph.expanded += 1
+      
     node = self.findLeft()
     if (node != None):
-      # self.graph.frontier.add(node)
-      heapq.heappush(self.graph.frontier, node)
+      heapq.heappush(self.graph.frontier, [node, -self.graph.expanded])
+      self.graph.expanded += 1
     return
   
   def findUp(self):
@@ -103,10 +102,8 @@ class Node:
     else:
       newState.id[blank] = self.state.id[blank-self.graph.width] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-self.graph.width] = 0
-    try:
-      if (self.graph.explored[str(newState)] == True):
+      if (str(newState) in self.graph.explored and self.graph.explored[str(newState)].pathCost < self.pathCost+1):
         return None
-    except KeyError:
       n = Node(self, newState, self.graph, self.pathCost+1)
       return n
   
@@ -128,10 +125,9 @@ class Node:
     else:
       newState.id[blank] = self.state.id[blank+1] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+1] = 0
-    try:
-      if (self.graph.explored[str(newState)] == True):
+      if (str(newState) in self.graph.explored and self.graph.explored[str(newState)].pathCost < self.pathCost+1):
         return None
-    except KeyError:
+  
       n = Node(self, newState, self.graph, self.pathCost+1)
       return n
 
@@ -154,10 +150,9 @@ class Node:
     else:
       newState.id[blank] = self.state.id[blank+self.graph.width] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank+self.graph.width] = 0
-    try:
-      if (self.graph.explored[str(newState)] == True):
+      if (str(newState) in self.graph.explored and self.graph.explored[str(newState)].pathCost < self.pathCost+1):
         return None
-    except KeyError:
+  
       n = Node(self, newState, self.graph, self.pathCost+1)
       return n
   
@@ -179,10 +174,9 @@ class Node:
     else:
       newState.id[blank] = self.state.id[blank-1] #idk if I need this deepcopy but just in case I'm doing it anyway
       newState.id[blank-1] = 0
-    try:
-      if (self.graph.explored[str(newState)] == True):
+      if (str(newState) in self.graph.explored and self.graph.explored[str(newState)].pathCost < self.pathCost+1):
         return None
-    except KeyError:
+
       n = Node(self, newState, self.graph, self.pathCost+1)
       return n
     

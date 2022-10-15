@@ -36,13 +36,97 @@ class Heuristics:
         x2, y2 = state._get2dCoord(state.board[i])  
         h += abs(x1 - x2) + abs(y1 - y2)
     return h
+  def _outOfRowColoumnHeuristic(state):
+    """
+    ----------------------------------------------------------
+    Description: Calculate the number of tiles out of row or coloumn.
+    Use: puzzles = Puzzle.randomizePuzzle(Heuristics.ROWCOL, 8)
+    ----------------------------------------------------------
+    Parameters:
+      state - The state to calculate the heuristic from
+    Returns:
+      h - The number of tiles out of row or coloumn.
+    ----------------------------------------------------------
+    """
+    h = 0
+    for i in range(state.boardLength):
+      if state.board[i] != 0:
+        x1, y1 = state._get2dCoord(i)
+        x2, y2 = state._get2dCoord(state.board[i])  
+        if x1 != x2:
+          h += 1
+        if y1 != y2:
+          h += 1
+    return h
+  
+  def _linearConflictHeuristic(state):
+    """
+    ----------------------------------------------------------
+    Description: Calculate the linear conflict heuristic of the state.
+    Use: puzzles = Puzzle.randomizePuzzle(Heuristics.LINEARCONFLICT, 8)
+    ----------------------------------------------------------
+    Parameters:
+      state - The state to calculate the heuristic from
+    Returns:
+      h - The linear conflict heuristic of the state.
+    ----------------------------------------------------------
+    """
+    h = 0
+    for i in range(state.boardLength):
+      if state.board[i] != 0:
+        x1, y1 = state._get2dCoord(i)
+        x2, y2 = state._get2dCoord(state.board[i]) 
+        h += abs(x1 - x2) + abs(y1 - y2) 
+        
+        if y1 == y2: # Tile is in the same row as it's goal tile
+          for j in range(state.boardLength): # Check if there is a tile in the same row that gives a linear conflict
+            if state.board[j] != 0:
+              x3, y3 = state._get2dCoord(j)
+              x4, y4 = state._get2dCoord(state.board[j])
+              if y3 == y1: # on the same row
+                if(x3 < x1 and x4 >= x1): # tile is in the way
+                  h += 2
+                  
+        if x1 == x2: # Tile is in the same coloumn as it's goal tile
+          for j in range(state.boardLength): # Check if there is a tile in the same coloumn that gives a linear conflict
+            if state.board[j] != 0:
+              x3, y3 = state._get2dCoord(j)
+              x4, y4 = state._get2dCoord(state.board[j])
+              if x3 == x1: # on the same col
+                if(y3 < y1 and y4 >= y1): # tile is in the way
+                  h += 2
+    return h
+                  
+  
+  def _euclideanHeuristic(state):
+    """
+    ----------------------------------------------------------
+    Description: Calculate the euclidean distance of the state.
+    Use: puzzles = Puzzle.randomizePuzzle(Heuristics.EUCLIDEAN, 8)
+    ----------------------------------------------------------
+    Parameters:
+      state - The state to calculate the euclidean distance of.
+    Returns:
+      h - The euclidean distance of the state.
+    ----------------------------------------------------------
+    """
+    h = 0
+    for i in range(state.boardLength):
+      if state.board[i] != 0:
+        x1, y1 = state._get2dCoord(i)
+        x2, y2 = state._get2dCoord(state.board[i])  
+        h += math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+    return h
+    
   
   DISPLACEMENT = _displacementHeuristic
   MANHATTAN = _manhattanHeuristic
-  
+  ROWCOL = _outOfRowColoumnHeuristic
+  EUCLIDEAN = _euclideanHeuristic
+  LINEARCONFLICT = _linearConflictHeuristic
 
 class Puzzle:
-  def randomizePuzzles(heuristic, size):
+  def randomizePuzzles(heuristic, size, numPuzzles):
     """
     ----------------------------------------------------------
     Description: Randomizes 100 puzzles of the given size.
@@ -58,7 +142,7 @@ class Puzzle:
     try:
       assert math.sqrt(size + 1) % 1 == 0
       puzzles = []
-      while len(puzzles) < 100:
+      while len(puzzles) < numPuzzles:
         board = [i for i in range(size+1)]
         random.shuffle(board)
         s = State(board, math.sqrt(len(board)), heuristic=heuristic)
@@ -117,7 +201,7 @@ class Puzzle:
       
     # Write total stats to file
     file.write("\n" + "="*150 + "\n")  
-    file.write(" Average Stats for 100 {}-Puzzles: \n".format(str(puzzles[0].boardLength-1)))
+    file.write(" Average Stats for {} {}-Puzzles: \n".format(len(puzzles), str(puzzles[0].boardLength-1)))
     file.write("\t{:<38} ---> {:.2f}s \n".format("Average Time taken to complete puzzle:",totalStats["timeTaken"]/len(puzzles)))
     file.write("\t{:<38} ---> {} \n".format("Average Number of expanded nodes:",str(totalStats["numNodesExplored"]/len(puzzles))))
     file.write("\t{:<38} ---> {} \n".format("Average Number of steps to solution:",str(totalStats["numStepsToSolution"]/len(puzzles))))
@@ -128,7 +212,7 @@ class Puzzle:
     fStats.close()
     # print average stats
     print("="*150)  
-    print(" Average Stats for 100 {}-Puzzles:".format(str(puzzles[0].boardLength-1)))
+    print(" Average Stats for {} {}-Puzzles:".format(len(puzzles), str(puzzles[0].boardLength-1)))
     print("\t{:<38} ---> {:.2f}s".format("Average Time taken to complete puzzle:",totalStats["timeTaken"]/len(puzzles)))
     print("\t{:<38} ---> {}".format("Average Number of expanded nodes:",str(totalStats["numNodesExplored"]/len(puzzles))))
     print("\t{:<38} ---> {}".format("Average Number of steps to solution:",str(totalStats["numStepsToSolution"]/len(puzzles))))
@@ -190,7 +274,13 @@ class Puzzle:
       'nodesPerSecond': len(explored) / ((end - start) if (end - start) != 0 else 0.01),
       'startingBoard': str(startingBoard)
     }
-    if debug: print('done:\t', str(s))
+    if debug: 
+      print('\ndone:\t', str(s)) 
+      print("\t{:<30} ---> {:.2f}s ".format("Time taken to complete puzzle:",stats["timeTaken"]))
+      print("\t{:<30} ---> {} ".format("Number of expanded nodes:",str(stats["numNodesExplored"])))
+      print("\t{:<30} ---> {} ".format("Number of steps to solution:",str(len(stats["pathToSolution"]))))
+      print("\t{:<30} ---> {} ".format("Path to Solution:",str(stats["pathToSolution"])))
+      print("\t{:<30} ---> {:.2f} nodes/s ".format("Nodes expanded per second:",stats["nodesPerSecond"]))
     return stats
 
 class State:

@@ -1,4 +1,6 @@
 import math, random, heapq, time
+from mem_top import mem_top
+import logging
 
 class Heuristics:
   def _displacementHeuristic(state):
@@ -42,6 +44,10 @@ class Heuristics:
   
 
 class Puzzle:
+  def __init__():
+    logging.basicConfig(filename='debug.log', encoding='utf-8', level=logging.DEBUG)
+    return
+  
   def randomizePuzzles(heuristic, size):
     """
     ----------------------------------------------------------
@@ -90,7 +96,7 @@ class Puzzle:
     }
     file = open(outputFile, "w")
     fStats = open(outputCSV, "w")
-    fStats.write("Puzzle ID,Puzzle,Time Taken,Nodes Explored,Steps to Solution,Nodes per Second") # write header
+    fStats.write("Puzzle ID,Puzzle,Time Taken,Nodes Explored,Steps to Solution,Nodes per Second\n") # write header
     for puzzle in puzzles:
       file.write("-"*150 + "\n")
       file.write(" Puzzle # " + str(count) + " | " + str(puzzle.board) + "\n")
@@ -109,7 +115,7 @@ class Puzzle:
       file.write("\t{:<30} ---> {} \n".format("Number of steps to solution:",str(len(stats["pathToSolution"]))))
       file.write("\t{:<30} ---> {} \n".format("Path to Solution:",str(stats["pathToSolution"])))
       file.write("\t{:<30} ---> {:.2f} nodes/s \n".format("Nodes expanded per second:",stats["nodesPerSecond"]))
-      fStats.write('%s,%s,%s,%s,%s,%s' % (str(count),str(stats["startingBoard"]),str(stats["timeTaken"]),str(stats["numNodesExplored"]),str(len(stats["pathToSolution"])),str(stats["nodesPerSecond"])))
+      fStats.write('%s,%s,%s,%s,%s,%s\n' % (str(count),str(stats["startingBoard"]),str(stats["timeTaken"]),str(stats["numNodesExplored"]),str(len(stats["pathToSolution"])),str(stats["nodesPerSecond"])))
       yield 
       count += 1
       file.flush()
@@ -159,11 +165,12 @@ class Puzzle:
     startingBoard = s
     start = time.time()
     heapq.heapify(frontier) # create heap and add initial state
-    heapq.heappush(frontier, s)
+    heapq.heappush(frontier, (s.f, s.board, s.g, s.h, s.path, s.heuristicFunction))
 
     if debug: print('start:\t', str(s))
     while len(frontier) != 0: # loop until frontier is empty
-      s = heapq.heappop(frontier)
+      sTup = heapq.heappop(frontier) # (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
+      s = State(sTup[1], math.sqrt(len(sTup[1])), sTup[2], sTup[4], sTup[5])
       exploredCost = explored.get(str(s))
       if exploredCost != None:
         if exploredCost <= s.g: # if the explored cost is less than the current cost, then we don't need to explore this state
@@ -175,6 +182,7 @@ class Puzzle:
       
       if debug:
         if len(explored) % 100000 == 0:
+          print(mem_top())
           print('#explored:\t', len(explored))
           print('nps:\t\t {:.2f}\n'.format(len(explored) / (time.time() - start)))
         
@@ -188,7 +196,7 @@ class Puzzle:
       'numNodesExplored': len(explored),
       'pathToSolution': s.path[:],
       'nodesPerSecond': len(explored) / ((end - start) if (end - start) != 0 else 0.01),
-      'startingBoard': str(startingBoard)
+      'startingBoard': '-'.join(str(x) for x in startingBoard.board)
     }
     if debug: print('done:\t', str(s))
     return stats
@@ -251,7 +259,8 @@ class State:
     index2 = int(index2)
     step = board[index2]
     board[index1], board[index2] = board[index2], board[index1]
-    return State(board, self.width, self.g + 1, self.path + [step], heuristic=self.heuristicFunction)
+    newState = State(board, self.width, self.g + 1, self.path + [step], heuristic=self.heuristicFunction)
+    return (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
   
   def isSolvable(self):
     inversions = 0

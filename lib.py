@@ -92,7 +92,9 @@ class Puzzle:
     fStats = open(outputCSV, "w")
     fStats.write("Puzzle ID,Puzzle,Time Taken,Nodes Explored,Steps to Solution,Nodes per Second") # write header
     for puzzle in puzzles:
-      # print("Puzzle #", count)
+      file.write("-"*150 + "\n")
+      file.write(" Puzzle # " + str(count) + " | " + str(puzzle.board) + "\n")
+      file.flush()
       stats = Puzzle.solvePuzzle(puzzle, debug)
       
       # Update total stats
@@ -102,8 +104,6 @@ class Puzzle:
       totalStats["numStepsToSolution"] += len(stats["pathToSolution"])
       
       # Write to file
-      file.write("-"*150 + "\n")
-      file.write(" Puzzle # " + str(count) + "\n")
       file.write("\t{:<30} ---> {:.2f}s \n".format("Time taken to complete puzzle:",stats["timeTaken"]))
       file.write("\t{:<30} ---> {} \n".format("Number of expanded nodes:",str(stats["numNodesExplored"])))
       file.write("\t{:<30} ---> {} \n".format("Number of steps to solution:",str(len(stats["pathToSolution"]))))

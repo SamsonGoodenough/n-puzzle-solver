@@ -1,29 +1,47 @@
-from lib.graph import Graph
+from lib import State, Heuristics
+import heapq
+import math
+import random
+import time
 
-#TODO: Make sure the path is correct
-#TODO: Make work with manhattan distance heuristic and one other heuristic
-#TODO: If puzzle given is already solved, print that it is already solved
-#TODO: Make work with 15-puzzle
-#TODO: Make work with 24-puzzle
+start = time.time()
 
-#TODO: disorder parameter gives odd number for solvalbe puzzles (e.g. [1,2,3,7,4,5,6,0,8,9,10,11,12,13,14,15])
+startingBoard = [i for i in range(9)]
+# startingBoard = [1, 2, 0, 3, 4, 5, 6, 7, 8]
+# startingBoard = [i for i in range(16)]
+# startingBoard = [4, 1, 2, 3, 5, 6, 7, 11, 8, 9, 10, 0, 12, 13, 14, 15]
+random.shuffle(startingBoard)
+s = State(startingBoard, math.sqrt(len(startingBoard)), heuristic=Heuristics.MANHATTAN)
+while s.isSolvable() == False:
+  random.shuffle(startingBoard)
+  s = State(startingBoard, math.sqrt(len(startingBoard)), heuristic=Heuristics.MANHATTAN)
+  
+explored = {}
+frontier = []
+heapq.heapify(frontier)
+heapq.heappush(frontier, s)
 
-# graph = Graph([1,2,3,4,
-#                0,5,6,7,
-#                8,9,10,11,
-#                12,13,14,15], "manhattan")
-# graph = Graph([1,2,3,7,4,5,6,0,8,9,10,11,12,13,14,15])
-graph = Graph([5, 1, 2, 3, 7, 4, 6, 8, 0])
-# print(graph.root.state.calculateManhattanDistance())
+print('start:\t', str(s))
+while len(frontier) != 0:
+  s = heapq.heappop(frontier)
+  if explored.get(str(s)) != None:
+    continue
+  explored[str(s)] = True
+  
+  if s.h == 0:
+    break
+  
+  if len(explored) % 100000 == 0:
+    print('#explored:\t', len(explored))
+    print('nps:\t\t {:.2f}\n'.format(len(explored) / (time.time() - start)))
+    
+  
+  for move in s.getMoves():
+    if str(move) not in explored:
+      heapq.heappush(frontier, move)
 
-# graph = Graph([8,6,7,2,5,4,3,0,1])
-# graph = Graph([6,4,7,8,5,0,3,2,1])
-
-node = graph.findGoalState()
-
-print("------------------PRINTING PATH TO GOAL STATE------------------")
-node.printPath()
-
-
-
-
+print('done:\t', str(s))
+print('#explored:', len(explored))
+print('#path:', '->'.join(map(str, s.path)))
+print('nps:\t\t {:.2f}'.format(len(explored) / (time.time() - start)))
+print('total time:\t {:.2f}\n'.format((time.time() - start)))

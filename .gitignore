@@ -1,5 +1,4 @@
 .DS_Store
-lib/__pycache__/__init__.cpython-310.pyc
-lib/__pycache__/graph.cpython-310.pyc
-lib/__pycache__/node.cpython-310.pyc
-lib/__pycache__/state.cpython-310.pyc
+*.pyc
+*.db
+*.txt

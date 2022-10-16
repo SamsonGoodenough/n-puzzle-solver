@@ -1,129 +1,130 @@
-import heapq
-import math
-from .state import State
+import shelve
+import os
+from math import sqrt
+from heapq import heappush, heappop
+from lib.heuristic import Heuristics
 from .node import Node
-import time
+from .state import State
 
 class Graph:
-  """
-  ----------------------------------------------------------
-  Graph class
-  Use: Holds the root state and goal state of the graph.
-  ----------------------------------------------------------
-  Parameters:
-    id                  : ID of the root state. (Array)
-    heuristic           : Heuristic to use when calculating the cost of a node. Default is misplaced tiles (String)
-  Variables:
-    goalState           : Goal state of the graph. (State)
-    heuristic           : Heuristic to use when calculating the cost of a node. Default is misplaced tiles (String)
-    explored            : Dictionary of explored states. (Dictionary)
-    frontier            : Heap of nodes that we have found but have yet to explore. (Heap)
-    width               : Width of the graph. (int)
-    root                : Root node of the graph. (Node)
-    solvable            : Whether or not the graph is solvable. (Boolean)
-  Methods:
-    findGoalState       : Discovers a path to the goal state using A* search. (Node)
-    getDisorder         : Returns the disorder parameter of the root state. (int)
-    getDefaultGoalState : Returns the default goal state for the given id. [0,1,2,3,4,5,6,7,8...] (State)
-  ----------------------------------------------------------
-  """
-  def __init__(self, id, heuristic = "tiles"):
-    self.goalState = self.getDefaultGoalState(id)
-    self.heuristic = heuristic
-    self.explored = {}
-    self.frontier = []
-    heapq.heapify(self.frontier)
-    
-    width = math.sqrt(len(id))
-    if width % 1 != 0:
-      raise ValueError("Invalid id length")
-    self.width = int(width)
-    state = State(id, self)
-    self.root = Node(None, state, self)
-    self.solvable = self.getDisorder() % 2 == 0
-  
-  def findGoalState(self):
     """
-    ----------------------------------------------------------
-    Discovers a path to the goal state using A* search.
-    Use: graph.findGoalState()
-    ----------------------------------------------------------
-    Asserts:
-      The graph is solvable.
-    Returns:
-      node : Node that holds the goal state. (Node)
-      -1   : The graph is not solvable.
-    ----------------------------------------------------------
+    -------------------------------------------------------------------
+    Contains everything needed for A* search.
+      * Only minor changes should be required (notably proper support
+        for weighted edges) if this code were used for another A*
+        implementation.
+    -------------------------------------------------------------------
+    Parameters:
+        id - ID of the root state. (array)
+        heuristic - An admissible heuristic function used to estimate
+            the cost from a State to the goal. (function)
+    Attributes:
+        heuristic - An admissible heuristic function used to estimate
+            the cost from a State to the goal. (function)
+        h_param - a parameter to be passed to the heuristic function.
+            e.g., a database connection, the width of a Graph. (varies)
+        root - Root node of the graph (every other Node is a
+            descendant of root). Holds the initial state. (Node)
+        width - Width of the graph (specifically, n for an n*n-1
+            puzzle). Must be a perfect square. (int > 0)
+        frontier - Minimum-heap of nodes ready to be explored.
+            Priority is determined by the depth and heuristic of each
+            node. (list / heapq)
+        generated - Set of states that have been added to the
+            frontier, including any states that have since been removed
+            fron the frontier. (set)
+        solvable - Whether or not the graph's initial state is
+            solvable. (bool)
+        goal - A Node whose State is a goal State. Must be a descendant
+            of root. Defaults to None until such a node is found.
+            (Node)
+    Public Methods:
+        solve - Uses A* algorithm to find an optimal path to the goal
+            State. Returns statistics used to evaluate the heuristics.
+            (int, int, int)
+    -------------------------------------------------------------------
     """
-    try:
-      assert self.solvable
-      count = 0
-      node = self.root
-      start = time.time()
-      while(node.state != self.goalState): #TODO: We can prob use node.heuristicValue == 0 to check the goal state might be more effeciency
-        node.expandFrontier()
-        node = heapq.heappop(self.frontier)
-        
-        #TODO: remove this later (for testing)
-        if(count % 100000 == 0):
-          print("Time elapsed: " + str(round(time.time() - start, 2)) + "s")
-          print("Nodes Traversed: " + str(count))
-          print("Current Node: "+ str(node))
-          print()
-          
-        count += 1
-      print("---------------------------------------------------------------")
-      print("TOTAL NODES TRAVERSED: " + str(count))
-      return node
-    except AssertionError:
-      return -1
-    
-  #TODO: make sure graph is a valid graph (no duplicates) prob do this in getDisorder since we are already looping through the graph
-  #TODO: can prob put this in the state class
-  #TODO: something is up with this function idk what it is but it is not working correctly
-  def getDisorder(self):
-    """
-    ----------------------------------------------------------
-    Get the disorder of the state.
-    ----------------------------------------------------------
-    Returns:
-      disorder: The disorder of the state.
-        even  : The state is solvable.
-        odd   : The state is not solvable.
-        -1    : The state is the solved state.
-    ----------------------------------------------------------
-    """
-    disorder = 0
-    passFlag = False
-    # pass over all the tile that matches with the goal state
-    for i in range(len(self.goalState.id)-1, 0, -1):
-      if not passFlag and self.goalState.id[i] == self.root.state.id[i]:
-        continue
-      else:
-        passFlag = True
-        
-      # loop over remaining tiles and calculate disorder
-      for j in range(i-1, -1, -1):
-        if self.root.state.id[i] < self.root.state.id[j]:
-          if self.root.state.id[i] == 0 or self.root.state.id[j] == 0:
-            continue
-          else:
-            disorder += 1
-    
-    print("Disorder: " + str(disorder))
-    if not passFlag:
-      return -1 # in solved state
-    else:
-      return disorder
 
-  def getDefaultGoalState(self, id):
-    """
-    ----------------------------------------------------------
-    Get the default goal state for the given id.
-    Use: self.goalState = self.getDefaultGoalState(id)
-    ----------------------------------------------------------
-    """
-    state = []
-    for i in range(0, len(id)):
-      state.append(i)
-    return State(state, self)
+    def __init__(self, initial_id, heuristic):
+        width = sqrt(len(initial_id))
+        if not width.is_integer():
+            raise ValueError("the number of positions in the initial state " \
+                f"must be a perfect square, not {len(initial_id)}"
+                )
+        self.width = int(width)
+
+        if not callable(heuristic):
+            raise TypeError(
+                f"heuristic must be a function, not {type(heuristic)}"
+                )
+        self.heuristic = heuristic
+        if self.heuristic is Heuristics.h3_disjoint_pattern_datebase:
+            # open databases
+            paths = ()
+            if self.width == 3:
+                #paths = ("8-full.db",) # perfect heuristic
+                paths = ("8-01234.db", "8-05678.db") # disjoint
+            elif self.width == 4:
+                paths = ("15-TL.db", "15-TR.db", "15-BL.db", "15-BR.db")
+            # open each database once
+            self.h_param = [shelve.open(
+                os.path.join('.', 'pattern-databases', p), 'r') for p in paths
+                ]
+        else:
+            # pass the width
+            self.h_param = self.width
+
+        self.root = Node(None, State(initial_id), graph=self)
+        self.solvable = self.root.state.is_solvable(self.width)
+        self.generated = {hash(self.root.state)}
+        self.frontier = [self.root]
+        self.goal = None # replaced with a Node if/when it is found
+    
+    def __del__(self):
+        if self.heuristic is Heuristics.h3_disjoint_pattern_datebase:
+            # close connection to each database
+            for db in self.h_param:
+                db.close()
+    
+    def solve(self):
+        """
+        ---------------------------------------------------------------
+        Discovers a path to the goal state using A* search.
+        Use: generated, expanded, cost = graph.solve()
+        ---------------------------------------------------------------
+        Asserts:
+            The graph is solvable.
+        Parameters:
+            None
+        Returns:
+            generated - the number of distinct States generated
+                during the search (int > 0)
+            expanded - the number of nodes extracted from the frontier
+                through the duration of the search (int > 0)
+            cost - the minimum number of moves required to get from the
+                initial state to a goal state (int >= 0)
+        ---------------------------------------------------------------
+        """
+        assert self.solvable, "cannot search a graph that is unsolveable"
+        node = heappop(self.frontier)
+        while node.heuristic_value != 0:
+            new_states = node.state.find_neighbours(self.width)
+            for state in new_states:
+                new_node = Node(node, state)
+                self._insert(new_node)
+            node = heappop(self.frontier)
+        # generate statistics for comparison / report
+        self.goal = node
+        generated = len(self.generated)
+        expanded = generated - len(self.frontier)
+        cost = self.goal.cost
+        return generated, expanded, cost
+    
+    def _insert(self, node):
+        """Insert `node` if and only if it is not a duplicate"""
+        # keep track of the size of the set (to check for duplicates)
+        old_len = len(self.generated)
+        self.generated.add(hash(node.state))
+        if old_len != len(self.generated):
+            # node yet to be explored ==> add it to the frontier
+            heappush(self.frontier, node)

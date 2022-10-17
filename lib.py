@@ -119,7 +119,30 @@ class Heuristics:
         x2, y2 = state._get2dCoord(state.board[i])  
         h += math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
     return h
+  
+  def strToHeuristic(str):
+    if (str == "DISPLACEMENT"):
+      return Heuristics.DISPLACEMENT
+    elif (str == "MANHATTAN"):
+      return Heuristics.MANHATTAN
+    elif (str == "ROWCOL"):
+      return Heuristics.ROWCOL
+    elif (str == "LINEARCONFLICT"):
+      return Heuristics.LINEARCONFLICT
+    elif (str == "EUCLIDEAN"):
+      return Heuristics.EUCLIDEAN
     
+  def heuristicToStr(func):
+    if func == Heuristics._displacementHeuristic:
+      return "DISPLACEMENT"
+    elif func == Heuristics._manhattanHeuristic:
+      return "MANHATTAN"
+    elif func == Heuristics._outOfRowColoumnHeuristic:
+      return "ROWCOL"
+    elif func == Heuristics._linearConflictHeuristic:
+      return "LINEARCONFLICT"
+    elif func == Heuristics._euclideanHeuristic:
+      return "EUCLIDEAN"
   
   DISPLACEMENT = _displacementHeuristic
   MANHATTAN = _manhattanHeuristic
@@ -249,12 +272,13 @@ class Puzzle:
     startingBoard = s
     start = time.time()
     heapq.heapify(frontier) # create heap and add initial state
-    heapq.heappush(frontier, (s.f, s.board, s.g, s.h, s.path, s.heuristicFunction))
+    heapq.heappush(frontier, s._getStateAsStr())
 
     if debug: print('start:\t', str(s))
     while len(frontier) != 0: # loop until frontier is empty
-      sTup = heapq.heappop(frontier) # (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
-      s = State(sTup[1], math.sqrt(len(sTup[1])), sTup[2], sTup[4], sTup[5])
+      sParams = heapq.heappop(frontier) # (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
+      # print('params:\t', sParams)
+      s = State.strToState(sParams[1])
       exploredCost = explored.get(str(s))
       if exploredCost != None:
         if exploredCost <= s.g: # if the explored cost is less than the current cost, then we don't need to explore this state
@@ -292,15 +316,16 @@ class Puzzle:
     return stats
 
 class State:
-  def __init__(self, board, width, g=0, path = [], heuristic=Heuristics.MANHATTAN):
+  def __init__(self, board, width, g=0, h=None, path = [], heuristic=Heuristics.MANHATTAN):
     self.board = board
     self.boardLength = len(board)
     self.width = width
     self.heuristicFunction = heuristic
     self.g = g
-    self.h = self.getH()
+    self.h = self.getH() if h == None else h
     self.f = self.g + self.h
     self.path = path
+    # print("INIT | board: {} | g: {} | h: {} | f: {} | path: {}".format(self.board, self.g, self.h, self.f, self.path))
     
   def __str__(self):
     return ','.join(map(str, self.board))
@@ -330,6 +355,7 @@ class State:
     ----------------------------------------------------------
     """
     moves = []
+    # print("IN getMoves:", self.board)
     index = self.board.index(0)
     row = index // self.width
     col = index % self.width
@@ -349,8 +375,23 @@ class State:
     index2 = int(index2)
     step = board[index2]
     board[index1], board[index2] = board[index2], board[index1]
-    newState = State(board, self.width, self.g + 1, self.path + [step], heuristic=self.heuristicFunction)
-    return (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
+    newState = State(board, self.width, self.g + 1, path = self.path + [step], heuristic=self.heuristicFunction)
+    #f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction
+    return newState._getStateAsStr()
+  
+  def _getStateAsStr(self):
+    return (self.f, '%s|%s|%s|%s|%s' % (State.arrayToStr(self.board), self.g, self.h, State.arrayToStr(self.path), Heuristics.heuristicToStr(self.heuristicFunction)))
+  
+  def arrayToStr(board):
+    return ','.join(map(str, board))
+    
+  def strToState(str):
+    boardAsStr, g, h, pathAsStr, heuristic = str.split('|') # split the string into the board, g, h, path, and heuristic
+    board = list(map(int, boardAsStr.split(','))) # convert the stringified board to a list of ints
+    path = list(pathAsStr.split(',')) if pathAsStr is not '' else [] # convert the stringified path to a list of ints
+    # print('path =================', path)
+    # print("Board: ",board, "g: ",g, "h: ",h, "path: ",path, "heuristic: ",heuristic)
+    return State(board, math.sqrt(len(board)), float(g), float(h), path, Heuristics.strToHeuristic(heuristic))
   
   def isSolvable(self):
     inversions = 0

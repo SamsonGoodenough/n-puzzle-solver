@@ -155,7 +155,7 @@ class Puzzle:
     logging.basicConfig(filename='debug.log', encoding='utf-8', level=logging.DEBUG)
     return
   
-  def randomizePuzzles(heuristic, size, numPuzzles):
+  def randomizePuzzles(heuristic, size, numPuzzles, seed):
     """
     ----------------------------------------------------------
     Description: Randomizes 100 puzzles of the given size.
@@ -170,6 +170,7 @@ class Puzzle:
     """
     try:
       assert math.sqrt(size + 1) % 1 == 0
+      random.seed(seed)
       puzzles = []
       while len(puzzles) < numPuzzles:
         board = [i for i in range(size+1)]
@@ -201,8 +202,8 @@ class Puzzle:
       'numStepsToSolution': 0,
       'nodesPerSecond': 0
     }
-    file = open(outputFile, "w")
-    fStats = open(outputCSV, "w")
+    file = open("./output/" + outputFile, "w")
+    fStats = open("./output/" + outputCSV, "w")
     fStats.write("Puzzle ID,Puzzle,Time Taken,Nodes Explored,Steps to Solution,Nodes per Second\n") # write header
     for puzzle in puzzles:
       file.write("-"*150 + "\n")
@@ -278,7 +279,7 @@ class Puzzle:
     while len(frontier) != 0: # loop until frontier is empty
       sParams = heapq.heappop(frontier) # (newState.f, newState.board, newState.g, newState.h, newState.path, newState.heuristicFunction)
       # print('params:\t', sParams)
-      s = State.strToState(sParams[1])
+      s = State.strToState(sParams[2])
       exploredCost = explored.get(str(s))
       if exploredCost != None:
         if exploredCost <= s.g: # if the explored cost is less than the current cost, then we don't need to explore this state
@@ -380,7 +381,7 @@ class State:
     return newState._getStateAsStr()
   
   def _getStateAsStr(self):
-    return (self.f, '%s|%s|%s|%s|%s' % (State.arrayToStr(self.board), self.g, self.h, State.arrayToStr(self.path), Heuristics.heuristicToStr(self.heuristicFunction)))
+    return (self.f, self.h, '%s|%s|%s|%s|%s' % (State.arrayToStr(self.board), self.g, self.h, State.arrayToStr(self.path), Heuristics.heuristicToStr(self.heuristicFunction)))
   
   def arrayToStr(board):
     return ','.join(map(str, board))
@@ -388,7 +389,7 @@ class State:
   def strToState(str):
     boardAsStr, g, h, pathAsStr, heuristic = str.split('|') # split the string into the board, g, h, path, and heuristic
     board = list(map(int, boardAsStr.split(','))) # convert the stringified board to a list of ints
-    path = list(pathAsStr.split(',')) if pathAsStr is not '' else [] # convert the stringified path to a list of ints
+    path = list(pathAsStr.split(',')) if pathAsStr != '' else [] # convert the stringified path to a list of ints
     # print('path =================', path)
     # print("Board: ",board, "g: ",g, "h: ",h, "path: ",path, "heuristic: ",heuristic)
     return State(board, math.sqrt(len(board)), float(g), float(h), path, Heuristics.strToHeuristic(heuristic))

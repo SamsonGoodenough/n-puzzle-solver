@@ -30,7 +30,7 @@ Tool that can solve random or given n-puzzles (n=8, 15, 24...) using the **A\* s
   - Supplies the file name to output to csv data to.
 
 `-d, --debug`
-  - Supplies the file name to output to csv data to.
+  - Tells the program to output debug information
 
 `-p PUZZLE`, `--puzzle PUZZLE`
   - Supply a puzzle for the program to solve. e.g. `-p 1,5,2,4,3,7,6,8,0`
